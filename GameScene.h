@@ -10,7 +10,8 @@
 #include "Mario.h"
 #include "Obstacle.h"
 
-class GameScene : public QMainWindow {
+class GameScene : public QMainWindow
+{
     Q_OBJECT
 
 public:
@@ -20,23 +21,22 @@ public:
 private:
     QGraphicsScene *scene;
     QGraphicsView *view;
-    Mario *mario;
-    QList<Obstacle *> obstacles;
     QGraphicsTextItem *scoreText;
     QGraphicsRectItem *lifeBar;
+    QTimer *movementTimer;
+    QTimer *scoreTimer;
+    Mario *mario; // Player character
+    QList<Obstacle *> obstacles;
+    QList<QGraphicsPixmapItem *> backgrounds; // Holds background images
 
     int score;
     int lives;
 
-    void setupScene();
     void createObstacles();
-    void finishLevel();
-    void gameOver();
-
-
-public slots:
     void updateScore(int points);
     void updateLives();
+    void centerViewOnMario();
+    void finishLevel();
 };
 
 #endif // GAMESCENE_H

@@ -77,32 +77,35 @@ void Mario::updatePosition() {
     // Apply vertical movement
     setPos(x(), y() + velocityY);
 
-    // Check for collisions
-    QList<QGraphicsItem*> collidingItems = scene()->collidingItems(this);
-    for (QGraphicsItem* item : collidingItems) {
-        Obstacle* obstacle = dynamic_cast<Obstacle*>(item);
-        if (obstacle) {
-            // Check if Mario is landing on top of the obstacle
-            QRectF marioBounds = boundingRect().translated(pos());
-            QRectF obstacleBounds = obstacle->boundingRect().translated(obstacle->pos());
-
-            if (marioBounds.bottom() <= obstacleBounds.top() + 5 && velocityY > 0) {
-                // Mario lands on top of the obstacle
-                setPos(x(), obstacleBounds.top() - marioBounds.height()); // Snap Mario to obstacle's top
-                velocityY = 0; // Stop vertical motion
-                onGround = true; // Mario is now on the ground
-            } else {
-                // Side collision, Mario loses a life
-                emit marioHitObstacle(); // Signal to reduce Mario's lives
-            }
-        }
-    }
-
-
     // While jumping, make Mario land further
     if (!onGround) {
         // Apply a slight horizontal speed increase while jumping
         velocityX = 5; // Mario moves forward while jumping
+    }
+
+    // Check for collisions
+    QList<QGraphicsItem *> collidingItems = scene()->collidingItems(this);
+    for (QGraphicsItem *item : collidingItems) {
+        Obstacle *obstacle = dynamic_cast<Obstacle *>(item);
+        if (obstacle) {
+            // Get Mario's bounding rectangle
+            QRectF marioBounds = boundingRect().translated(pos());
+            QRectF obstacleBounds = obstacle->boundingRect().translated(obstacle->pos());
+
+            if (marioBounds.bottom() <= obstacleBounds.top()) {
+                // Mario lands on top of the obstacle
+                //setPos(x(), obstacleBounds.top() - marioBounds.height()); // Snap Mario to obstacle's top
+                qDebug()<<"remain in the same position\n";
+                velocityY = 0; // Stop vertical motion
+                setPos(x(), 320);
+
+                onGround = true; // Mario is now on the ground
+            } else {
+                // Side collision, Mario loses a life
+                emit marioHitObstacle(); // Signal to reduce Mario's lives
+                return; // Exit the collision check loop
+            }
+        }
     }
 
     // Check if Mario has landed on the ground
@@ -110,11 +113,11 @@ void Mario::updatePosition() {
         setPos(x(), 400); // Correct position on the ground
         velocityY = 0;     // Reset vertical velocity
         onGround = true;   // Mario is now on the ground
-
         // Stop horizontal movement after landing
         velocityX = 0;     // Stop horizontal movement after landing
     }
 }
+
 void Mario::checkCollisions() {
     QList<QGraphicsItem *> collidingItems = scene()->collidingItems(this);
 
@@ -124,7 +127,7 @@ void Mario::checkCollisions() {
             // Check if Mario lands on top of the obstacle
             if (y() + boundingRect().height() <= obstacle->y()) {
                 // Landed on top of obstacle
-                setPos(x(), obstacle->y() - boundingRect().height());
+                setPos(x(), 325);
                 velocityY = 0; // Stop downward motion
                 onGround = true;
             } else {
