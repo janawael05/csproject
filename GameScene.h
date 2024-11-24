@@ -10,6 +10,8 @@
 #include "Mario.h"
 #include "Obstacle.h"
 
+const int winscore = 100;
+
 class GameScene : public QMainWindow
 {
     Q_OBJECT

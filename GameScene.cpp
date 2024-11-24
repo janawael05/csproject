@@ -103,66 +103,39 @@ void GameScene::createObstacles() {
 }
 
 void GameScene::updateScore(int points) {
-    if(score < 50){
-    score += points; // Increment score by the given points
-    scoreText->setPlainText("Score: " + QString::number(score));
-    // Check if the level is completed
-    }
-    else if (score == 15) {
-        // Display "Congratulations" message
-        for (Obstacle *obstacle : obstacles) {
-            scene->removeItem(obstacle);
-            delete obstacle;
+    if (score < winscore) {
+        score += points; // Increment score by the given points
+        scoreText->setPlainText("Score: " + QString::number(score));
+
+        // Check if the level is completed
+        if (score >= winscore) { // Trigger when score reaches or exceeds 15
+            // Display "Congratulations" message
+            for (Obstacle *obstacle : obstacles) {
+                scene->removeItem(obstacle);
+                delete obstacle;
+            }
+            obstacles.clear();
+
+            // Show "CONGRATULATIONS!" message
+            QGraphicsTextItem *levelCompleteText = new QGraphicsTextItem("CONGRATULATIONS! YOU FINISHED LEVEL 1");
+            levelCompleteText->setDefaultTextColor(Qt::green);
+            levelCompleteText->setFont(QFont("Arial", 48, QFont::Bold));
+            levelCompleteText->setPos(view->width() / 2 - 150, view->height() / 2 - 50);
+            scene->addItem(levelCompleteText);
+
+            // Stop timers to prevent further updates
+            if (movementTimer) movementTimer->stop();
+            if (scoreTimer) scoreTimer->stop();
+
+            // Return to the main menu after a delay
+            QTimer::singleShot(3000, [this]() {
+                MainWindow *open = new MainWindow;
+                open->show(); // Show the main window
+                this->close(); // Close the game scene
+            });
         }
-        obstacles.clear();
-
-        scene->removeItem(mario);
-        delete mario;
-        mario = nullptr;
-
-
-        // Show "Game Over" message
-        QGraphicsTextItem *levelCompleteText = new QGraphicsTextItem("CONGRATULATIONS! YOU FINISHED LEVEL 1");
-        levelCompleteText->setDefaultTextColor(Qt::white);
-        levelCompleteText->setFont(QFont("Arial", 48, QFont::Bold));
-        levelCompleteText->setPos(view->width() / 2 - 150, view->height() / 2 - 50);
-        scene->addItem(levelCompleteText);
-
-        // Stop timers to prevent further updates
-        movementTimer->stop();
-        scoreTimer->stop();
-
-        // Return to the main menu after a delay
-        QTimer::singleShot(3000, [this]() {
-            MainWindow *open = new MainWindow;
-            open->show(); // Show the main window
-            this->close(); // Close the game scene
-        });
-
-        // QGraphicsTextItem *levelCompleteText = new QGraphicsTextItem("CONGRATULATIONS! YOU FINISHED LEVEL 1");
-        // levelCompleteText->setDefaultTextColor(Qt::yellow);
-        // levelCompleteText->setFont(QFont("Arial", 36, QFont::Bold));
-        // levelCompleteText->setPos(scene->width() / 2 - 300, scene->height() / 2 - 50);
-        // scene->addItem(levelCompleteText);
-
-        // // Stop the game
-        // for (Obstacle *obstacle : obstacles) {
-        //     scene->removeItem(obstacle);
-        //     delete obstacle;
-        // }
-        // obstacles.clear();
-
-        // scene->removeItem(mario);
-        // delete mario;
-        // mario = nullptr;
-
-        // Stop timers to prevent further updates
-        //movementTimer->stop();
-        //scoreTimer->stop();
-
     }
 }
-
 void GameScene::updateLives() {
     if (lives > 0) {
         lives--; // Decrement lives safely
@@ -234,14 +207,12 @@ void GameScene::finishLevel() {
     delete mario;
     mario = nullptr;
 
-    // Show "Congratulations" message
     QGraphicsTextItem *congratsText = new QGraphicsTextItem("Congratulations, you finished level 1!");
     congratsText->setDefaultTextColor(Qt::green);
     congratsText->setFont(QFont("Arial", 36, QFont::Bold));
     congratsText->setPos(scene->width() / 2 - 300, scene->height() / 2 - 50); // Center text
     scene->addItem(congratsText);
 
-    // Optionally, add a delay before moving to the next level
     QTimer::singleShot(3000, [this]() {
         MainWindow *open = new MainWindow;
         open->show(); // Return to main menu
