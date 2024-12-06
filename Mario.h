@@ -12,6 +12,7 @@ class Mario : public QObject, public QGraphicsPixmapItem {
 public:
     explicit Mario(QGraphicsItem *parent = nullptr);
     void move();
+    void stopCollisionCooldown();
 
 signals:
     void marioHitObstacle(); // Signal emitted when Mario hits an obstacle
@@ -24,12 +25,14 @@ private:
     float velocityX;
     float velocityY;
     bool onGround;
-    void jump();
     QTimer *physicsTimer; // Timer for physics updates (gravity, motion)
-
     void checkCollisions();
     void applyGravity();  // Handles gravity
     void updatePosition(); // Updates Mario's position based on velocity
+    bool collisionCooldown; // Prevent repeated collisions
+    QTimer *cooldownTimer;  // Timer for managing cooldown
+    void startCollisionCooldown(); // Helper function to start cooldown
+
 };
 
 #endif // MARIO_H

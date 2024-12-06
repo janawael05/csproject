@@ -1,5 +1,6 @@
 #include "Mario.h"
 #include "Obstacle.h"
+#include "GameScene.h"
 #include <QList>
 #include <QGraphicsItem>
 #include "QtGui/qevent.h"
@@ -19,6 +20,10 @@ Mario::Mario(QGraphicsItem *parent)
     physicsTimer = new QTimer(this);
     connect(physicsTimer, &QTimer::timeout, this, &Mario::updatePosition);
     physicsTimer->start(20); // Update every 20ms
+
+    cooldownTimer = new QTimer(this);
+    cooldownTimer->setSingleShot(true); // Only trigger once per cooldown period
+    connect(cooldownTimer, &QTimer::timeout, [this]() { collisionCooldown = false; });
 }
 
 void Mario::keyPressEvent(QKeyEvent *event)
@@ -67,6 +72,7 @@ void Mario::applyGravity() {
     }
 }
 
+
 void Mario::updatePosition() {
     // Apply horizontal movement
     setPos(x() + velocityX, y());
@@ -76,11 +82,10 @@ void Mario::updatePosition() {
 
     // Apply vertical movement
     setPos(x(), y() + velocityY);
-
     // While jumping, make Mario land further
     if (!onGround) {
-        // Apply a slight horizontal speed increase while jumping
-        velocityX = 5; // Mario moves forward while jumping
+    //Apply a slight horizontal speed increase while jumping
+    velocityX = 5; // Mario moves forward while jumping
     }
 
     // Check for collisions
@@ -88,53 +93,57 @@ void Mario::updatePosition() {
     for (QGraphicsItem *item : collidingItems) {
         Obstacle *obstacle = dynamic_cast<Obstacle *>(item);
         if (obstacle) {
-            // Get Mario's bounding rectangle
             QRectF marioBounds = boundingRect().translated(pos());
             QRectF obstacleBounds = obstacle->boundingRect().translated(obstacle->pos());
 
             if (marioBounds.bottom() <= obstacleBounds.top()) {
                 // Mario lands on top of the obstacle
-                //setPos(x(), obstacleBounds.top() - marioBounds.height()); // Snap Mario to obstacle's top
-                qDebug()<<"remain in the same position\n";
                 velocityY = 0; // Stop vertical motion
-                setPos(x(), 320);
+                setPos(x(), obstacleBounds.top() - marioBounds.height());
+                onGround = true;
+            } else if (!collisionCooldown) {
+                // Side collision: Mario loses a life
+                emit marioHitObstacle(); // Signal collision
 
-                onGround = true; // Mario is now on the ground
-            } else {
-                // Side collision, Mario loses a life
-                emit marioHitObstacle(); // Signal to reduce Mario's lives
-                return; // Exit the collision check loop
+                // Query GameScene for remaining lives
+                GameScene *gameScene = dynamic_cast<GameScene *>(scene()->views().first()->parentWidget());
+                if (gameScene) {
+                    qDebug() << "Mario collided. Lives left:" << gameScene->getLives();
+                    if (gameScene->getLives() > 0) {
+                        // Start collision cooldown only if Mario has lives left
+                        startCollisionCooldown();
+                    } else {
+                        // If game over, stop the cooldown timer to avoid further updates
+                        stopCollisionCooldown();
+                        qDebug() << "Game Over triggered from Mario.";
+
+                    }
+
+                }
+                return; // Prevent multiple collision handling
             }
         }
     }
-
     // Check if Mario has landed on the ground
-    if (y() >= 400) { // Ground level (adjust as necessary)
-        setPos(x(), 400); // Correct position on the ground
-        velocityY = 0;     // Reset vertical velocity
-        onGround = true;   // Mario is now on the ground
-        // Stop horizontal movement after landing
-        velocityX = 0;     // Stop horizontal movement after landing
+    if (y() >= 400) { // Ground level
+        setPos(x(), 400);
+        velocityY = 0;
+        onGround = true;
+        velocityX = 0;
     }
 }
 
-void Mario::checkCollisions() {
-    QList<QGraphicsItem *> collidingItems = scene()->collidingItems(this);
+// Helper function to start cooldown
+void Mario::startCollisionCooldown() {
+    collisionCooldown = true;
+    cooldownTimer->start(2000); // Set cooldown period (2 seconds)
+}
 
-    for (QGraphicsItem *item : collidingItems) {
-        Obstacle *obstacle = dynamic_cast<Obstacle *>(item);
-        if (obstacle) {
-            // Check if Mario lands on top of the obstacle
-            if (y() + boundingRect().height() <= obstacle->y()) {
-                // Landed on top of obstacle
-                setPos(x(), 325);
-                velocityY = 0; // Stop downward motion
-                onGround = true;
-            } else {
-                // Hit the side of an obstacle
-                emit marioHitObstacle();
-                return;
-            }
-        }
+// Helper function to stop cooldown
+void Mario::stopCollisionCooldown() {
+    collisionCooldown = false;
+    if (cooldownTimer->isActive()) {
+        cooldownTimer->stop(); // Stop the cooldown timer immediately
+        qDebug() << "Collision cooldown stopped.";
     }
 }

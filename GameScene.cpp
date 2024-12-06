@@ -3,14 +3,17 @@
 #include "MainWindow.h"
 #include "Obstacle.h"
 #include "MovingObstacle.h"
+#include "Mario.h"
 #include <QGraphicsPixmapItem>
 #include <QGraphicsProxyWidget>
 #include <QFont>
 #include <QLabel>
 #include <QProgressBar>
 
+
 GameScene::GameScene(QWidget *parent)
     : QMainWindow(parent), score(0), lives(3)
+
 {
     // Create the QGraphicsScene
     scene = new QGraphicsScene(this);
@@ -31,19 +34,22 @@ GameScene::GameScene(QWidget *parent)
     background->setZValue(-1); // Ensure it's at the lowest z-index
     scene->addItem(background);
 
-    // // Add score display
-    scoreText = new QGraphicsTextItem("Score: 0");
-    scoreText->setDefaultTextColor(Qt::white);
-    scoreText->setFont(QFont("Arial", 24));
-    scoreText->setPos(10, 10);
-    scoreText->setZValue(1); // Ensure it renders above the background
-    scene->addItem(scoreText);
+    // // // Add score display
+    // scoreText = new QGraphicsTextItem("Score: 0");
+    // scoreText->setDefaultTextColor(Qt::white);
+    // scoreText->setFont(QFont("Arial", 24));
+    // scoreText->setPos(10, 10);
+    // scoreText->setZValue(1); // Ensure it renders above the background
+    // scene->addItem(scoreText);
 
-    // // Add life bar
-    lifeBar = new QGraphicsRectItem(10, 40, 200, 20); // Initial size of life bar
-    lifeBar->setBrush(Qt::green);
-    lifeBar->setZValue(1); // Ensure it renders above the background
-    scene->addItem(lifeBar);
+    // // // Add life bar
+    // lifeBar = new QGraphicsRectItem(10, 40, 200, 20); // Initial size of life bar
+    // lifeBar->setBrush(Qt::green);
+    // lifeBar->setZValue(1); // Ensure it renders above the background
+    // scene->addItem(lifeBar);
+
+    //add score and life bar
+    addUI();
 
     // Add obstacles
     createObstacles();
@@ -89,7 +95,42 @@ GameScene::GameScene(QWidget *parent)
  }
 
 GameScene::~GameScene() {
+    if (movementTimer) {
+        movementTimer->stop();
+        delete movementTimer;
+    }
+    if (scoreTimer) {
+        scoreTimer->stop();
+        delete scoreTimer;
+    }
     delete scene;
+}
+
+void GameScene::addUI() {
+    // Add score display
+    scoreText = new QGraphicsTextItem("Score: 0");
+    scoreText->setDefaultTextColor(Qt::white);
+    scoreText->setFont(QFont("Arial", 24));
+    scoreText->setPos(10, 10);
+    scene->addItem(scoreText);
+    scoreText->setZValue(2); // Ensure it renders above the background
+
+    // Add life bar
+    lifeBar = new QGraphicsRectItem();
+    lifeBar->setBrush(Qt::green);
+    scene->addItem(lifeBar);
+    lifeBar->setRect(0, 30, 200, 20); // Set initial size
+    lifeBar->setZValue(2); // Ensure it renders above the background
+
+    // Position score and life bar relative to the view
+    updateUIPositions();
+}
+
+void GameScene::updateUIPositions() {
+    // Ensure UI elements remain fixed relative to the viewport
+    QPointF topLeft = view->mapToScene(0, 0); // Top-left of the viewport
+    scoreText->setPos(topLeft.x() + 10, topLeft.y());
+    lifeBar->setPos(topLeft.x() + 10, topLeft.y());
 }
 
 void GameScene::createObstacles() {
@@ -139,34 +180,53 @@ void GameScene::updateScore(int points) {
 void GameScene::updateLives() {
     if (lives > 0) {
         lives--; // Decrement lives safely
+        qDebug() << "Lives decremented. Remaining lives:" << lives;
 
         if (lives > 0) {
             // Update life bar width
             lifeBar->setRect(10, 40, 200 * (lives / 3.0), 20);
         } else {
+            qDebug() << "Game Over triggered from GameScene!";
             lives = 0;
-            // Game over logic
-            // Stop the game
+
+            // Stop timers to prevent further updates
+            if (movementTimer) {
+                movementTimer->stop();
+                qDebug() << "Movement timer stopped.";
+            }
+            if (scoreTimer) {
+                scoreTimer->stop();
+                qDebug() << "Score timer stopped.";
+            }
+
+            // Remove Mario from the scene
+            if (mario) {
+                mario->stopCollisionCooldown();
+            }
+
+            // Clear all obstacles
             for (Obstacle *obstacle : obstacles) {
                 scene->removeItem(obstacle);
                 delete obstacle;
             }
             obstacles.clear();
 
-            scene->removeItem(mario);
-            delete mario;
-            mario = nullptr;
-
-            // Stop timers to prevent further updates
-            movementTimer->stop();
-            scoreTimer->stop();
-
-
             // Show "Game Over" message
             QGraphicsTextItem *gameOverText = new QGraphicsTextItem("GAME OVER");
             gameOverText->setDefaultTextColor(Qt::red);
             gameOverText->setFont(QFont("Arial", 48, QFont::Bold));
-            gameOverText->setPos(view->width() / 2 - 150, view->height() / 2 - 50);
+            // gameOverText->setPos(view->width() / 2 - 150, view->height() / 2 - 50);
+            QPointF topLeft = view->mapToScene(0, 0); // Top-left of the current viewport
+            QPointF bottomRight = view->mapToScene(view->viewport()->width(), view->viewport()->height()); // Bottom-right of the viewport
+
+            // Calculate center of the current view
+            qreal centerX = (topLeft.x() + bottomRight.x()) / 2.0;
+            qreal centerY = (topLeft.y() + bottomRight.y()) / 2.0;
+
+            // Position the text centered on the current view
+            gameOverText->setPos(centerX - gameOverText->boundingRect().width() / 2,
+                                 centerY - gameOverText->boundingRect().height() / 2);
+
             scene->addItem(gameOverText);
 
             // Return to the main menu after a delay
@@ -181,7 +241,6 @@ void GameScene::updateLives() {
     }
 }
 
-
 void GameScene::centerViewOnMario() {
     QPointF target = mario->pos();
 
@@ -193,6 +252,7 @@ void GameScene::centerViewOnMario() {
     qreal y = qMax(halfHeight, qMin(scene->height() - halfHeight, target.y()));
 
     view->centerOn(x, y);
+    updateUIPositions();
 }
 
 void GameScene::finishLevel() {
@@ -219,4 +279,5 @@ void GameScene::finishLevel() {
         close();      // Close the current GameScene
     });
 }
+
 

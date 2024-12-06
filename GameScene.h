@@ -19,6 +19,9 @@ class GameScene : public QMainWindow
 public:
     explicit GameScene(QWidget *parent = nullptr);
     ~GameScene();
+    int getLives() const {
+        return lives;
+    }
 
 private:
     QGraphicsScene *scene;
@@ -33,12 +36,14 @@ private:
 
     int score;
     int lives;
-
     void createObstacles();
     void updateScore(int points);
     void updateLives();
     void centerViewOnMario();
     void finishLevel();
+    void addUI();
+    void updateUIPositions();
+
 };
 
 #endif // GAMESCENE_H
