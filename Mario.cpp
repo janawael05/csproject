@@ -9,7 +9,9 @@
 #include <QKeyEvent>
 
 Mario::Mario(QGraphicsItem *parent)
-    : QGraphicsPixmapItem(parent), velocityX(0), velocityY(0), onGround(true)
+    // : QGraphicsPixmapItem(parent), velocityX(0), velocityY(0), onGround(true)
+    : QGraphicsPixmapItem(parent), velocityX(0), velocityY(0), onGround(true),
+    canDoubleJump(false), invincible(false), speedMultiplier(1.0f), hasDoubleJumped(false)
 {
     setPixmap(QPixmap("/Users/janawael/supermario/supermario.png").scaled(100, 100));
     // Enable focus so Mario can receive key events
@@ -26,19 +28,43 @@ Mario::Mario(QGraphicsItem *parent)
     connect(cooldownTimer, &QTimer::timeout, [this]() { collisionCooldown = false; });
 }
 
-void Mario::keyPressEvent(QKeyEvent *event)
-{
+
+// void Mario::keyPressEvent(QKeyEvent *event)
+// {
+//     switch (event->key()) {
+//     case Qt::Key_Left:
+//         velocityX = -5;
+//         break;
+//     case Qt::Key_Right:
+//         velocityX = 5;
+//         break;
+//     case Qt::Key_Space:
+//         if (onGround) {
+//             velocityY = -15; // Jump upwards
+//             onGround = false;
+//         }
+//         break;
+//     default:
+//         break;
+//     }
+// }
+
+void Mario::keyPressEvent(QKeyEvent *event) {
     switch (event->key()) {
     case Qt::Key_Left:
-        velocityX = -5;
+        velocityX = -5 * speedMultiplier;
         break;
     case Qt::Key_Right:
-        velocityX = 5;
+        velocityX = 5 * speedMultiplier;
         break;
     case Qt::Key_Space:
         if (onGround) {
             velocityY = -15; // Jump upwards
             onGround = false;
+            hasDoubleJumped = false; // Reset double jump
+        } else if (canDoubleJump && !hasDoubleJumped) {
+            velocityY = -15; // Perform double jump
+            hasDoubleJumped = true;
         }
         break;
     default:
@@ -146,4 +172,16 @@ void Mario::stopCollisionCooldown() {
         cooldownTimer->stop(); // Stop the cooldown timer immediately
         qDebug() << "Collision cooldown stopped.";
     }
+}
+// Ability-related methods
+void Mario::setSpeed(float multiplier) {
+    speedMultiplier = multiplier; // Adjust Mario's speed
+}
+
+void Mario::setCanDoubleJump(bool enabled) {
+    canDoubleJump = enabled; // Enable/disable double jump
+}
+
+void Mario::setInvincible(bool enabled) {
+    invincible = enabled; // Enable/disable invincibility
 }

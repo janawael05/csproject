@@ -4,15 +4,18 @@
 #include "Obstacle.h"
 #include "MovingObstacle.h"
 #include "Mario.h"
+#include "QMessageBox"
 #include <QGraphicsPixmapItem>
 #include <QGraphicsProxyWidget>
 #include <QFont>
 #include <QLabel>
 #include <QProgressBar>
+#include <QVBoxLayout>
 
 
 GameScene::GameScene(QWidget *parent)
-    : QMainWindow(parent), score(0), lives(3)
+    //: QMainWindow(parent), score(0), lives(3)
+    : QMainWindow(parent), score(0), coins(0), lives(3), speedBoostActive(false), doubleJumpActive(false), invincibilityActive(false), abilityDuration(5000) // 5 seconds for temporary abilities
 
 {
     // Create the QGraphicsScene
@@ -33,20 +36,6 @@ GameScene::GameScene(QWidget *parent)
     QGraphicsPixmapItem *background = new QGraphicsPixmapItem(QPixmap("/Users/janawael/supermario/background.png"));
     background->setZValue(-1); // Ensure it's at the lowest z-index
     scene->addItem(background);
-
-    // // // Add score display
-    // scoreText = new QGraphicsTextItem("Score: 0");
-    // scoreText->setDefaultTextColor(Qt::white);
-    // scoreText->setFont(QFont("Arial", 24));
-    // scoreText->setPos(10, 10);
-    // scoreText->setZValue(1); // Ensure it renders above the background
-    // scene->addItem(scoreText);
-
-    // // // Add life bar
-    // lifeBar = new QGraphicsRectItem(10, 40, 200, 20); // Initial size of life bar
-    // lifeBar->setBrush(Qt::green);
-    // lifeBar->setZValue(1); // Ensure it renders above the background
-    // scene->addItem(lifeBar);
 
     //add score and life bar
     addUI();
@@ -91,10 +80,16 @@ GameScene::GameScene(QWidget *parent)
     scoreTimer->start(100); // Update score every 100ms
 
     // Connect Mario's signal to update lives
-    connect(mario, &Mario::marioHitObstacle, this, &GameScene::updateLives); 
+    connect(mario, &Mario::marioHitObstacle, this, &GameScene::updateLives);
+
+    // Timer for ability deactivation
+    abilityTimer = new QTimer(this);
+    connect(abilityTimer, &QTimer::timeout, this, &GameScene::deactivateAbilities);
+    abilityTimer->setSingleShot(true); // Will trigger only once when the ability ends
  }
 
-GameScene::~GameScene() {
+GameScene::~GameScene()
+ {
     if (movementTimer) {
         movementTimer->stop();
         delete movementTimer;
@@ -122,15 +117,45 @@ void GameScene::addUI() {
     lifeBar->setRect(0, 30, 200, 20); // Set initial size
     lifeBar->setZValue(2); // Ensure it renders above the background
 
-    // Position score and life bar relative to the view
+    // Add coins display
+    coinsText = new QGraphicsTextItem("Coins: 0");
+    coinsText->setDefaultTextColor(Qt::yellow);
+    coinsText->setFont(QFont("Arial", 24));
+    scene->addItem(coinsText);
+    coinsText->setZValue(2); // Ensure it renders above the background
+
+    // Add store button
+    storeButton = new QPushButton("Store", this);
+    storeButton->setGeometry(700, 10, 80, 40); // Position the button in the top-right corner
+    connect(storeButton, &QPushButton::clicked, this, &GameScene::openStore);
+
+    // Add ability status display
+    abilityStatusText = new QGraphicsTextItem("");
+    abilityStatusText->setDefaultTextColor(Qt::blue);
+    abilityStatusText->setFont(QFont("Arial", 18));
+    scene->addItem(abilityStatusText);
+    abilityStatusText->setZValue(2); // Render above the background
+
+    // Position relative to the view
     updateUIPositions();
 }
 
 void GameScene::updateUIPositions() {
     // Ensure UI elements remain fixed relative to the viewport
     QPointF topLeft = view->mapToScene(0, 0); // Top-left of the viewport
+
+    // Position score text at the top
     scoreText->setPos(topLeft.x() + 10, topLeft.y());
-    lifeBar->setPos(topLeft.x() + 10, topLeft.y());
+
+    // Position coins text directly below the score
+    coinsText->setPos(topLeft.x() + 10, topLeft.y() + 40);
+
+    // Position life bar below the coins text
+    lifeBar->setPos(topLeft.x() + 10, topLeft.y() + 60);
+
+    // Position ability status below life bar
+    abilityStatusText->setPos(topLeft.x() + 10, topLeft.y() + 120);
+
 }
 
 void GameScene::createObstacles() {
@@ -145,9 +170,20 @@ void GameScene::createObstacles() {
 
 void GameScene::updateScore(int points) {
     if (score < winscore) {
+        // score += points; // Increment score by the given points
+        // coins += points/10; // Increment coins as score increases
+        // scoreText->setPlainText("Score: " + QString::number(score));
+        // coinsText->setPlainText("Coins: " + QString::number(coins));
         score += points; // Increment score by the given points
-        scoreText->setPlainText("Score: " + QString::number(score));
 
+        // Check if coins should increment (for every 10 points of score)
+        int newCoins = score / 2; // Calculate coins based on total score
+        if (newCoins > coins) {
+            coins = newCoins; // Update coins only if newCoins is greater
+            coinsText->setPlainText("Coins: " + QString::number(coins)); // Update coins UI
+        }
+
+        scoreText->setPlainText("Score: " + QString::number(score)); // Update score UI
         // Check if the level is completed
         if (score >= winscore) { // Trigger when score reaches or exceeds 15
             // Display "Congratulations" message
@@ -184,7 +220,7 @@ void GameScene::updateLives() {
 
         if (lives > 0) {
             // Update life bar width
-            lifeBar->setRect(10, 40, 200 * (lives / 3.0), 20);
+            lifeBar->setRect(10, 30, 200 * (lives / 3.0), 20);
         } else {
             qDebug() << "Game Over triggered from GameScene!";
             lives = 0;
@@ -279,5 +315,118 @@ void GameScene::finishLevel() {
         close();      // Close the current GameScene
     });
 }
+void GameScene::activateSpeedBoost() {
+    if (!speedBoostActive) {
+        speedBoostActive = true;
+        mario->setSpeed(2.0); // Double Mario's speed
+        abilityTimer->start(abilityDuration); // Start the timer to deactivate after 5 seconds
+    }
+}
+
+void GameScene::activateDoubleJump() {
+    if (!doubleJumpActive) {
+        doubleJumpActive = true;
+        mario->setCanDoubleJump(true); // Enable double jump ability for Mario
+        abilityTimer->start(abilityDuration); // Start the timer to deactivate after 5 seconds
+    }
+}
+
+void GameScene::activateInvincibility() {
+    if (!invincibilityActive) {
+        invincibilityActive = true;
+        mario->setInvincible(true); // Make Mario invincible
+        abilityTimer->start(abilityDuration); // Start the timer to deactivate after 5 seconds
+    }
+}
+
+void GameScene::deactivateAbilities() {
+    // Deactivate all abilities after the timer expires
+    speedBoostActive = false;
+    doubleJumpActive = false;
+    invincibilityActive = false;
+
+    mario->setSpeed(1.0); // Reset speed
+    mario->setCanDoubleJump(false); // Disable double jump
+    mario->setInvincible(false); // Disable invincibility
+
+    updateAbilityUI(); // Update UI to reflect abilities being inactive
+}
+
+void GameScene::openStore() {
+    // Create a QDialog for the store interface
+    QDialog *storeDialog = new QDialog(this);
+    storeDialog->setWindowTitle("Store");
+    storeDialog->setFixedSize(300, 200);
+
+    // Create a layout for the dialog
+    QVBoxLayout *layout = new QVBoxLayout(storeDialog);
+
+    // Create a label to show the coins and store description
+    QLabel *storeLabel = new QLabel("Coins: " + QString::number(coins) + "\n\nSelect an ability to purchase:");
+    layout->addWidget(storeLabel);
+
+    // Create buttons for the three abilities
+    QPushButton *speedBoostButton = new QPushButton("1. Speed Boost - 10 coins");
+    QPushButton *doubleJumpButton = new QPushButton("2. Double Jump - 15 coins");
+    QPushButton *invincibilityButton = new QPushButton("3. Invincibility - 20 coins");
+
+    // Add buttons to the layout
+    layout->addWidget(speedBoostButton);
+    layout->addWidget(doubleJumpButton);
+    layout->addWidget(invincibilityButton);
+
+    // Connect the buttons to their respective slots
+    connect(speedBoostButton, &QPushButton::clicked, [this, storeDialog]() {
+        purchaseAbility("Speed Boost");
+        storeDialog->accept(); // Close the dialog
+    });
+    connect(doubleJumpButton, &QPushButton::clicked, [this, storeDialog]() {
+        purchaseAbility("Double Jump");
+        storeDialog->accept(); // Close the dialog
+    });
+    connect(invincibilityButton, &QPushButton::clicked, [this, storeDialog]() {
+        purchaseAbility("Invincibility");
+        storeDialog->accept(); // Close the dialog
+    });
+
+    // Show the dialog
+    storeDialog->exec();
+}
+
+
+void GameScene::purchaseAbility(const QString &ability) {
+    if (ability == "Speed Boost" && coins >= 10) {
+        coins -= 10;
+        activateSpeedBoost();
+    } else if (ability == "Double Jump" && coins >= 15) {
+        coins -= 15;
+        activateDoubleJump();
+    } else if (ability == "Invincibility" && coins >= 20) {
+        coins -= 20;
+        activateInvincibility();
+    } else {
+        QMessageBox::warning(this, "Not Enough Coins", "You do not have enough coins to buy this ability.");
+        return;
+    }
+    updateAbilityUI(); // Update coins and ability status
+}
+
+
+void GameScene::updateAbilityUI() {
+    // Update coins UI
+    coinsText->setPlainText("Coins: " + QString::number(coins));
+
+    // Update ability status
+    if (speedBoostActive) {
+        abilityStatusText->setPlainText("Ability: Speed Boost Active!");
+    } else if (doubleJumpActive) {
+        abilityStatusText->setPlainText("Ability: Double Jump Active!");
+    } else if (invincibilityActive) {
+        abilityStatusText->setPlainText("Ability: Invincibility Active!");
+    } else {
+        abilityStatusText->setPlainText("No Active Abilities");
+    }
+}
+
 
 
