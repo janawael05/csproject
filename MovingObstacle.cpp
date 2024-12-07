@@ -1,45 +1,34 @@
-#include "MovingObstacle.h"
-#include <QGraphicsScene>
-
-MovingObstacle::MovingObstacle(QGraphicsItem *parent)
-    : QGraphicsPixmapItem(parent),
-    direction(1),            // Start by moving down
-    speed(2),                // Default speed
-    range(100),              // Default range
-    currentDistance(0)       // Start at initial position
-{
-    // Load the bird image or graphic (adjust the path as needed)
-    setPixmap(QPixmap("/Users/janawael/supermario/bird.png").scaled(30, 30));
-    // Create a timer for movement
+#include "MovingObstacle.h" #include <QGraphicsScene>
+MovingObstacle::MovingObstacle(qreal startX, qreal endX, qreal y, int speed, QObject *parent) : QObject(parent), startX(startX), endX(endX), y(y), speed(speed), direction(1), range(0) {
+    // Set initial position
+    setPos(startX, y);
+    setPixmap(QPixmap("/Users/janawael/supermario/bird2.png").scaled(70, 70)); // Make sure the image path is correct
+    // Initialize movement timer
     movementTimer = new QTimer(this);
-
-    // Connect the timer to the move() slot
-    connect(movementTimer, &QTimer::timeout, this, &MovingObstacle::move);
-
-    // Start the timer
-    movementTimer->start(30);  // Update every 30 ms
+    connect(movementTimer, &QTimer::timeout, this, &MovingObstacle::move); movementTimer->start(16); // ~60 FPS (16 ms per frame)
 }
-
 void MovingObstacle::setSpeed(int speed) {
-    this->speed = speed;  // Set the speed of the obstacle's movement
+    this->speed = speed; // Set the speed of the obstacle's movement
 }
-
 void MovingObstacle::setRange(int range) {
-    this->range = range;  // Set the range of the up and down movement
+    this->range = range; // Set the range of the up and down movement
 }
-
-void MovingObstacle::move() {
-    // Move the obstacle up or down based on the current direction
-    setY(y() + direction * speed);
-    currentDistance += speed;
-
-    // Reverse direction if the obstacle exceeds the range
-    if (currentDistance >= range || currentDistance <= 0) {
-        direction *= -1;  // Reverse the direction
+void MovingObstacle::move() { // Get the current X position
+    qreal currentX = x();
+    // Move the bird horizontally based on speed and direction
+    if (direction == 1) {
+    // Move right
+        if (currentX + speed <= endX) {
+        setPos(currentX + speed, y); }
+        else {
+        // If reached endX, reverse direction
+        direction = -1;
+        }
     }
-
-    // Emit a signal if the obstacle moves out of the scene bounds
-    if (scene() && (y() < 0 || y() > scene()->height())) {
-        emit obstacleOutOfBounds();
-    }
+ else {
+    // Move left
+    if (currentX - speed >= startX) {
+        setPos(currentX - speed, y); } else {
+        // If reached startX, reverse direction direction = 1;
+    } }
 }

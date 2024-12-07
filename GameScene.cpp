@@ -42,6 +42,7 @@ GameScene::GameScene(QWidget *parent)
 
     // Add obstacles
     createObstacles();
+    addMovingObstacle();
 
     // Add Mario
     mario = new Mario();
@@ -175,55 +176,23 @@ void GameScene::updateUIPositions() {
 
 void GameScene::createObstacles() {
     int obstacleCount = 5 + currentLevel * 2;  // Increase number of obstacles as levels progress
-    for (int i = 0; i < obstacleCount; ++i) {
-        Obstacle *obstacle = new Obstacle();
-        obstacle->setPos(300 + i * 500, 425); // Spread obstacles along the X-axis
-        obstacles.append(obstacle);
-        scene->addItem(obstacle);
-    }
+    for (int i = 0;i < obstacleCount; ++i) {
+             Obstacle *obstacle = new Obstacle();
+             obstacle->setPos(300 + i * 500, 425); // Spread obstacles along the X-axis
+             obstacles.append(obstacle);
+             scene->addItem(obstacle);
+         }
 }
 
-// void GameScene::updateScore(int points) {
-//     if (score < winscore) {
-//         score += points; // Increment score by the given points
-
-//         // Check if coins should increment (for every 10 points of score)
-//         int newCoins = score / 2; // Calculate coins based on total score
-//         if (newCoins > coins) {
-//             coins = newCoins; // Update coins only if newCoins is greater
-//             coinsText->setPlainText("Coins: " + QString::number(coins)); // Update coins UI
-//         }
-
-//         scoreText->setPlainText("Score: " + QString::number(score)); // Update score UI
-//         // Check if the level is completed
-//         if (score >= winscore) { // Trigger when score reaches or exceeds 100
-//             // Display "Congratulations" message
-//             for (Obstacle *obstacle : obstacles) {
-//                 scene->removeItem(obstacle);
-//                 delete obstacle;
-//             }
-//             obstacles.clear();
-
-//             // Show "CONGRATULATIONS!" message
-//             QGraphicsTextItem *levelCompleteText = new QGraphicsTextItem("CONGRATULATIONS! YOU FINISHED LEVEL 1");
-//             levelCompleteText->setDefaultTextColor(Qt::green);
-//             levelCompleteText->setFont(QFont("Arial", 48, QFont::Bold));
-//             levelCompleteText->setPos(view->width() / 2 - 150, view->height() / 2 - 50);
-//             scene->addItem(levelCompleteText);
-
-//             // Stop timers to prevent further updates
-//             if (movementTimer) movementTimer->stop();
-//             if (scoreTimer) scoreTimer->stop();
-
-//             // Return to the main menu after a delay
-//             QTimer::singleShot(3000, [this]() {
-//                 MainWindow *open = new MainWindow;
-//                 open->show(); // Show the main window
-//                 this->close(); // Close the game scene
-//             });
-//         }
-//     }
-// }
+void GameScene::addMovingObstacle() {
+    int movingObstacleCount = 5 + currentLevel * 2;  // Increase number of obstacles as levels progress
+    for (int i = 0; i < movingObstacleCount; ++i) {
+    MovingObstacle *bird = new MovingObstacle(400, 800, 300, 2);
+    bird->setSpeed(3);
+    bird->setRange(200);
+    scene->addItem(bird);
+    }
+}
 
 void GameScene::updateScore(int points) {
     if (score < winscore) {

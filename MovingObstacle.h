@@ -1,31 +1,20 @@
-#ifndef MOVINGOBSTACLE_H
-#define MOVINGOBSTACLE_H
-
-#include <QGraphicsPixmapItem>
-#include <QObject>
+#ifndef MOVINGOBSTACLE_H #define MOVINGOBSTACLE_H
+#include <QGraphicsPixmapItem> #include <QObject>
 #include <QTimer>
-
-class MovingObstacle : public QObject, public QGraphicsPixmapItem {
-    Q_OBJECT
-
+class MovingObstacle : public QObject, public QGraphicsPixmapItem { Q_OBJECT
 public:
-    explicit MovingObstacle(QGraphicsItem *parent = nullptr);
-
-    void setSpeed(int speed);        // Set the speed of the obstacle's movement
-    void setRange(int range);        // Set the range of the up-down movement
-
-signals:
-    void obstacleOutOfBounds();     // Signal emitted when the obstacle goes out of the scene
-
-private slots:
-    void move();                    // Slot for handling movement logic
-
+    MovingObstacle(qreal startX, qreal endX, qreal y, int speed, QObject *parent = nullptr);
+    void setSpeed(int speed);
+    void setRange(int range);
+public slots:
+    void move();
 private:
-    QTimer *movementTimer;          // Timer to control the movement
-    int direction;                  // Direction of movement: 1 (down) or -1 (up)
-    int speed;                      // Speed of the movement
-    int range;                      // Range of the up and down movement
-    int currentDistance;            // Tracks how far the obstacle has moved in the current direction
+    qreal startX;
+    qreal endX;
+    qreal y;
+    int speed;
+    int range;
+    int direction;
+    QTimer *movementTimer;
 };
-
 #endif // MOVINGOBSTACLE_H

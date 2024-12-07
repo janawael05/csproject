@@ -28,27 +28,6 @@ Mario::Mario(QGraphicsItem *parent)
     connect(cooldownTimer, &QTimer::timeout, [this]() { collisionCooldown = false; });
 }
 
-
-// void Mario::keyPressEvent(QKeyEvent *event)
-// {
-//     switch (event->key()) {
-//     case Qt::Key_Left:
-//         velocityX = -5;
-//         break;
-//     case Qt::Key_Right:
-//         velocityX = 5;
-//         break;
-//     case Qt::Key_Space:
-//         if (onGround) {
-//             velocityY = -15; // Jump upwards
-//             onGround = false;
-//         }
-//         break;
-//     default:
-//         break;
-//     }
-// }
-
 void Mario::keyPressEvent(QKeyEvent *event) {
     qDebug() << "Key Pressed:" << event->key();
     switch (event->key()) {

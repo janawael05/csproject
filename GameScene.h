@@ -46,6 +46,7 @@ private:
     int winscore = 100;
 
     void createObstacles();
+    void addMovingObstacle();
     void updateScore(int points);
     void updateLives();
     void centerViewOnMario();
