@@ -50,6 +50,7 @@ Mario::Mario(QGraphicsItem *parent)
 // }
 
 void Mario::keyPressEvent(QKeyEvent *event) {
+    qDebug() << "Key Pressed:" << event->key();
     switch (event->key()) {
     case Qt::Key_Left:
         velocityX = -5 * speedMultiplier;
@@ -58,29 +59,40 @@ void Mario::keyPressEvent(QKeyEvent *event) {
         velocityX = 5 * speedMultiplier;
         break;
     case Qt::Key_Space:
-        if (onGround) {
+        if (onGround && !canDoubleJump) {
             velocityY = -15; // Jump upwards
             onGround = false;
             hasDoubleJumped = false; // Reset double jump
-        } else if (canDoubleJump && !hasDoubleJumped) {
-            velocityY = -15; // Perform double jump
+        } else if (onGround && canDoubleJump && !hasDoubleJumped) {
+            velocityY = -30; // Perform double jump
+            onGround = false;
             hasDoubleJumped = true;
         }
         break;
     default:
         break;
     }
+    qDebug() << "Updated velocityX:" << velocityX << " after Key Press";
+
 }
 
 
 void Mario::keyReleaseEvent(QKeyEvent *event) {
     if (event->key() == Qt::Key_Left || event->key() == Qt::Key_Right) {
-        velocityX = 0; // Stop moving when key is released
+        if (speedMultiplier == 1.0) {
+            velocityX = 0;
+        }
     }
+    qDebug() << "Key Released:" << event->key() << " velocityX set to:" << velocityX;
 }
 
 
 void Mario::move() {
+    qDebug() << "Before Moving Mario. Position:" << pos()
+    << " velocityX:" << velocityX
+    << " velocityY:" << velocityY
+    << " onGround:" << onGround;
+
     setPos(x() + velocityX, y()); // Move Mario based on velocity
     if (!onGround) {
         velocityY += 1; // Simulate gravity
@@ -91,6 +103,7 @@ void Mario::move() {
             onGround = true;
         }
     }
+    qDebug() << "After Moving Mario. New Position:" << pos();
 }
 void Mario::applyGravity() {
     if (!onGround) {
@@ -117,7 +130,7 @@ void Mario::updatePosition() {
     // Check for collisions
     QList<QGraphicsItem *> collidingItems = scene()->collidingItems(this);
     for (QGraphicsItem *item : collidingItems) {
-        Obstacle *obstacle = dynamic_cast<Obstacle *>(item);
+        Obstacle *obstacle = dynamic_cast<Obstacle *>(item);        
         if (obstacle) {
             QRectF marioBounds = boundingRect().translated(pos());
             QRectF obstacleBounds = obstacle->boundingRect().translated(obstacle->pos());
@@ -127,7 +140,7 @@ void Mario::updatePosition() {
                 velocityY = 0; // Stop vertical motion
                 setPos(x(), obstacleBounds.top() - marioBounds.height());
                 onGround = true;
-            } else if (!collisionCooldown) {
+            } else if (!invincible && !collisionCooldown) {
                 // Side collision: Mario loses a life
                 emit marioHitObstacle(); // Signal collision
 

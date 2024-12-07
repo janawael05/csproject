@@ -20,7 +20,7 @@ GameScene::GameScene(QWidget *parent)
 {
     // Create the QGraphicsScene
     scene = new QGraphicsScene(this);
-    scene->setSceneRect(0, 0, 6400, 600); // Set the virtual game world size
+    scene->setSceneRect(0, 0, 8000, 600); // Set the virtual game world size
 
     // Create a QGraphicsView to display the scene
     view = new QGraphicsView(this);
@@ -33,7 +33,7 @@ GameScene::GameScene(QWidget *parent)
     setFixedSize(800, 600); // Fixed view size (800x600 viewport)
 
     //Add background
-    QGraphicsPixmapItem *background = new QGraphicsPixmapItem(QPixmap("/Users/janawael/supermario/background.png"));
+    QGraphicsPixmapItem *background = new QGraphicsPixmapItem(QPixmap("/Users/janawael/supermario/background2.png"));
     background->setZValue(-1); // Ensure it's at the lowest z-index
     scene->addItem(background);
 
@@ -327,14 +327,18 @@ void GameScene::centerViewOnMario() {
 
 
 void GameScene::activateSpeedBoost() {
+    qDebug() << "Speed Boost Activated";
     if (!speedBoostActive) {
         speedBoostActive = true;
         mario->setSpeed(2.0); // Double Mario's speed
-        abilityTimer->start(abilityDuration); // Start the timer to deactivate after 5 seconds
+        if (!abilityTimer->isActive()) { // Avoid overlapping timers
+            abilityTimer->start(abilityDuration);
+        }
     }
 }
 
 void GameScene::activateDoubleJump() {
+    qDebug() << "Double Jump Activated";
     if (!doubleJumpActive) {
         doubleJumpActive = true;
         mario->setCanDoubleJump(true); // Enable double jump ability for Mario
@@ -343,6 +347,8 @@ void GameScene::activateDoubleJump() {
 }
 
 void GameScene::activateInvincibility() {
+    qDebug() << "Invincibility Activated";
+
     if (!invincibilityActive) {
         invincibilityActive = true;
         mario->setInvincible(true); // Make Mario invincible
@@ -351,9 +357,12 @@ void GameScene::activateInvincibility() {
 }
 
 void GameScene::deactivateAbilities() {
+    qDebug() << "Deactivating Abilities";
     // Deactivate all abilities after the timer expires
     speedBoostActive = false;
+
     doubleJumpActive = false;
+
     invincibilityActive = false;
 
     mario->setSpeed(1.0); // Reset speed
@@ -390,18 +399,24 @@ void GameScene::openStore() {
     connect(speedBoostButton, &QPushButton::clicked, [this, storeDialog]() {
         purchaseAbility("Speed Boost");
         storeDialog->accept(); // Close the dialog
+        mario->setFocus();
+
     });
     connect(doubleJumpButton, &QPushButton::clicked, [this, storeDialog]() {
         purchaseAbility("Double Jump");
         storeDialog->accept(); // Close the dialog
+        mario->setFocus();
+
     });
     connect(invincibilityButton, &QPushButton::clicked, [this, storeDialog]() {
         purchaseAbility("Invincibility");
         storeDialog->accept(); // Close the dialog
+        mario->setFocus();
+
     });
 
     // Show the dialog
-    storeDialog->exec();
+    storeDialog->show();
 }
 
 

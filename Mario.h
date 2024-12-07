@@ -18,6 +18,7 @@ public:
     void setSpeed(float multiplier); // Set Mario's speed
     void setCanDoubleJump(bool enabled); // Enable/disable double jump
     void setInvincible(bool enabled); // Enable/disable invincibility
+    //void setSpeedBoostActive(bool active);
 
 signals:
     void marioHitObstacle(); // Signal emitted when Mario hits an obstacle
