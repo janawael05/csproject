@@ -34,11 +34,7 @@ void MainWindow::exitGame() {
 
 void MainWindow::on_startGameButton_clicked()
 {
-    if (!gameScene) {
-        gameScene = new GameScene();  // Dynamically allocate memory for the game scene
-        gameScene->show();           // Show the game scene
-        this->close();               // Close the main window
-    }
+    startGame();
 }
 
 

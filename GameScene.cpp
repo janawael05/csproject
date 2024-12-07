@@ -15,12 +15,12 @@
 
 GameScene::GameScene(QWidget *parent)
     //: QMainWindow(parent), score(0), lives(3)
-    : QMainWindow(parent), score(0), coins(0), lives(3), speedBoostActive(false), doubleJumpActive(false), invincibilityActive(false), abilityDuration(5000) // 5 seconds for temporary abilities
+    : QMainWindow(parent), score(0), coins(0), lives(3), currentLevel(1), speedBoostActive(false), doubleJumpActive(false), invincibilityActive(false), abilityDuration(5000) // 5 seconds for temporary abilities
 
 {
     // Create the QGraphicsScene
     scene = new QGraphicsScene(this);
-    scene->setSceneRect(0, 0, 1600, 600); // Set the virtual game world size
+    scene->setSceneRect(0, 0, 6400, 600); // Set the virtual game world size
 
     // Create a QGraphicsView to display the scene
     view = new QGraphicsView(this);
@@ -67,7 +67,7 @@ GameScene::GameScene(QWidget *parent)
         if (mario) {
             static int lastX = mario->x(); // Store the last X position of Mario
 
-            mario->move(); // Move Mario
+            //mario->move(); // Move Mario
 
             // Check if Mario moved horizontally
             if (mario->x() > lastX) {
@@ -136,6 +136,14 @@ void GameScene::addUI() {
     scene->addItem(abilityStatusText);
     abilityStatusText->setZValue(2); // Render above the background
 
+    // Add "Level: X" display
+    levelText = new QGraphicsTextItem("Level: 1");
+    levelText->setDefaultTextColor(Qt::white);
+    levelText->setFont(QFont("Arial", 24));
+    scene->addItem(levelText);
+    levelText->setZValue(2); // Ensure it renders above the background
+
+
     // Position relative to the view
     updateUIPositions();
 }
@@ -143,6 +151,9 @@ void GameScene::addUI() {
 void GameScene::updateUIPositions() {
     // Ensure UI elements remain fixed relative to the viewport
     QPointF topLeft = view->mapToScene(0, 0); // Top-left of the viewport
+    QPointF bottomRight = view->mapToScene(view->viewport()->width(), view->viewport()->height()); // Bottom-right of the viewport
+
+    qreal viewCenterX = (topLeft.x() + bottomRight.x()) / 2; // Horizontal center of the viewport
 
     // Position score text at the top
     scoreText->setPos(topLeft.x() + 10, topLeft.y());
@@ -156,24 +167,66 @@ void GameScene::updateUIPositions() {
     // Position ability status below life bar
     abilityStatusText->setPos(topLeft.x() + 10, topLeft.y() + 120);
 
+    // Position level text at the top middle of the screen
+    //levelText->setPos(view->width() / 2 - levelText->boundingRect().width() / 2, topLeft.y() + 10);
+    levelText->setPos(viewCenterX - levelText->boundingRect().width() / 2, topLeft.y() + 10);
+
 }
 
 void GameScene::createObstacles() {
-    // Example obstacle setup
-    for (int i = 0; i < 5; ++i) {
+    int obstacleCount = 5 + currentLevel * 2;  // Increase number of obstacles as levels progress
+    for (int i = 0; i < obstacleCount; ++i) {
         Obstacle *obstacle = new Obstacle();
-        obstacle->setPos(300 + i * 500, 425); // Spread obstacles along X-axis
+        obstacle->setPos(300 + i * 500, 425); // Spread obstacles along the X-axis
         obstacles.append(obstacle);
         scene->addItem(obstacle);
     }
 }
 
+// void GameScene::updateScore(int points) {
+//     if (score < winscore) {
+//         score += points; // Increment score by the given points
+
+//         // Check if coins should increment (for every 10 points of score)
+//         int newCoins = score / 2; // Calculate coins based on total score
+//         if (newCoins > coins) {
+//             coins = newCoins; // Update coins only if newCoins is greater
+//             coinsText->setPlainText("Coins: " + QString::number(coins)); // Update coins UI
+//         }
+
+//         scoreText->setPlainText("Score: " + QString::number(score)); // Update score UI
+//         // Check if the level is completed
+//         if (score >= winscore) { // Trigger when score reaches or exceeds 100
+//             // Display "Congratulations" message
+//             for (Obstacle *obstacle : obstacles) {
+//                 scene->removeItem(obstacle);
+//                 delete obstacle;
+//             }
+//             obstacles.clear();
+
+//             // Show "CONGRATULATIONS!" message
+//             QGraphicsTextItem *levelCompleteText = new QGraphicsTextItem("CONGRATULATIONS! YOU FINISHED LEVEL 1");
+//             levelCompleteText->setDefaultTextColor(Qt::green);
+//             levelCompleteText->setFont(QFont("Arial", 48, QFont::Bold));
+//             levelCompleteText->setPos(view->width() / 2 - 150, view->height() / 2 - 50);
+//             scene->addItem(levelCompleteText);
+
+//             // Stop timers to prevent further updates
+//             if (movementTimer) movementTimer->stop();
+//             if (scoreTimer) scoreTimer->stop();
+
+//             // Return to the main menu after a delay
+//             QTimer::singleShot(3000, [this]() {
+//                 MainWindow *open = new MainWindow;
+//                 open->show(); // Show the main window
+//                 this->close(); // Close the game scene
+//             });
+//         }
+//     }
+// }
+
 void GameScene::updateScore(int points) {
     if (score < winscore) {
-        // score += points; // Increment score by the given points
-        // coins += points/10; // Increment coins as score increases
-        // scoreText->setPlainText("Score: " + QString::number(score));
-        // coinsText->setPlainText("Coins: " + QString::number(coins));
         score += points; // Increment score by the given points
 
         // Check if coins should increment (for every 10 points of score)
@@ -184,35 +237,16 @@ void GameScene::updateScore(int points) {
         }
 
         scoreText->setPlainText("Score: " + QString::number(score)); // Update score UI
-        // Check if the level is completed
-        if (score >= winscore) { // Trigger when score reaches or exceeds 15
-            // Display "Congratulations" message
-            for (Obstacle *obstacle : obstacles) {
-                scene->removeItem(obstacle);
-                delete obstacle;
-            }
-            obstacles.clear();
 
-            // Show "CONGRATULATIONS!" message
-            QGraphicsTextItem *levelCompleteText = new QGraphicsTextItem("CONGRATULATIONS! YOU FINISHED LEVEL 1");
-            levelCompleteText->setDefaultTextColor(Qt::green);
-            levelCompleteText->setFont(QFont("Arial", 48, QFont::Bold));
-            levelCompleteText->setPos(view->width() / 2 - 150, view->height() / 2 - 50);
-            scene->addItem(levelCompleteText);
-
-            // Stop timers to prevent further updates
-            if (movementTimer) movementTimer->stop();
-            if (scoreTimer) scoreTimer->stop();
-
-            // Return to the main menu after a delay
-            QTimer::singleShot(3000, [this]() {
-                MainWindow *open = new MainWindow;
-                open->show(); // Show the main window
-                this->close(); // Close the game scene
-            });
+        // Dynamically update winscore based on current level
+        int levelThreshold = currentLevel * 100;  // Level 1 needs 100, Level 2 needs 200, etc.
+        if (score >= levelThreshold) {
+            finishLevel(); // Trigger finish level when score reaches the current level threshold
         }
     }
 }
+
+
 void GameScene::updateLives() {
     if (lives > 0) {
         lives--; // Decrement lives safely
@@ -291,30 +325,7 @@ void GameScene::centerViewOnMario() {
     updateUIPositions();
 }
 
-void GameScene::finishLevel() {
-    // Stop the game
-    for (Obstacle *obstacle : obstacles) {
-        scene->removeItem(obstacle);
-        delete obstacle; // Clean up memory
-    }
-    obstacles.clear();
 
-    scene->removeItem(mario);
-    delete mario;
-    mario = nullptr;
-
-    QGraphicsTextItem *congratsText = new QGraphicsTextItem("Congratulations, you finished level 1!");
-    congratsText->setDefaultTextColor(Qt::green);
-    congratsText->setFont(QFont("Arial", 36, QFont::Bold));
-    congratsText->setPos(scene->width() / 2 - 300, scene->height() / 2 - 50); // Center text
-    scene->addItem(congratsText);
-
-    QTimer::singleShot(3000, [this]() {
-        MainWindow *open = new MainWindow;
-        open->show(); // Return to main menu
-        close();      // Close the current GameScene
-    });
-}
 void GameScene::activateSpeedBoost() {
     if (!speedBoostActive) {
         speedBoostActive = true;
@@ -428,5 +439,83 @@ void GameScene::updateAbilityUI() {
     }
 }
 
+void GameScene::finishLevel() {
+    // Clean up obstacles from the current level
+    for (Obstacle *obstacle : obstacles) {
+        scene->removeItem(obstacle);
+        delete obstacle;
+    }
+    obstacles.clear();
 
+    if (currentLevel<totalLevels) {
 
+    // Show level completion message
+    QGraphicsTextItem *levelCompleteText = new QGraphicsTextItem("CONGRATULATIONS! YOU FINISHED LEVEL " + QString::number(currentLevel));
+    levelCompleteText->setDefaultTextColor(Qt::green);
+    levelCompleteText->setFont(QFont("Arial", 30, QFont::Bold));
+    //levelCompleteText->setPos(view->width() / 2 - 150, view->height() / 2 - 50);
+    QPointF topLeft = view->mapToScene(0, 0); // Top-left of the current viewport
+    QPointF bottomRight = view->mapToScene(view->viewport()->width(), view->viewport()->height()); // Bottom-right of the viewport
+    // Calculate center of the current view
+    qreal centerX = (topLeft.x() + bottomRight.x()) / 2.0;
+    qreal centerY = (topLeft.y() + bottomRight.y()) / 2.0;
+
+    // Position the text centered on the current view
+    levelCompleteText->setPos(centerX - levelCompleteText->boundingRect().width() / 2,
+                              centerY - levelCompleteText->boundingRect().height() / 2);
+
+    scene->addItem(levelCompleteText);
+
+    // Set a timer to remove the levelCompleteText after 3 seconds
+    QTimer *timer = new QTimer(this);
+    connect(timer, &QTimer::timeout, this, [=]() {
+        scene->removeItem(levelCompleteText);
+        delete levelCompleteText;
+        timer->deleteLater(); // Clean up the timer
+    });
+    timer->start(3000); // 3 seconds (3000 milliseconds)
+
+    // Stop timers (movement, score updates) to prevent further progress
+    if (movementTimer) movementTimer->stop();
+    if (scoreTimer) scoreTimer->stop();
+
+    // Increment level number and update win score for the next level
+    currentLevel++;
+    winscore = currentLevel * 100;  // Set the winscore for the next level (100, 200, 300, etc.)
+
+    // Update "Level: X" text
+    levelText->setPlainText("Level: " + QString::number(currentLevel));
+
+    // If it's not the last level, continue to the next level
+    if (currentLevel <= totalLevels) {
+        // Recreate obstacles and other level elements
+        createObstacles(); // Assuming this function creates obstacles for the current level
+
+        // Restart timers for the new level
+        if (movementTimer) movementTimer->start();
+        if (scoreTimer) scoreTimer->start();
+    }
+
+    }
+
+    else {
+        // Display game complete or congratulatory message if last level is reached
+        QGraphicsTextItem *gameCompleteText = new QGraphicsTextItem("CONGRATULATIONS! YOU FINISHED ALL LEVELS!");
+        gameCompleteText->setDefaultTextColor(Qt::green);
+        gameCompleteText->setFont(QFont("Arial", 30, QFont::Bold));
+        //gameCompleteText->setPos(view->width() / 2 - 250, view->height() / 2 - 50);
+        //scene->addItem(gameCompleteText);
+        QPointF topLeft = view->mapToScene(0, 0); // Top-left of the current viewport
+        QPointF bottomRight = view->mapToScene(view->viewport()->width(), view->viewport()->height()); // Bottom-right of the viewport
+        // Calculate center of the current view
+        qreal centerX = (topLeft.x() + bottomRight.x()) / 2.0;
+        qreal centerY = (topLeft.y() + bottomRight.y()) / 2.0;
+        // Position the text centered on the current view
+        gameCompleteText->setPos(centerX - gameCompleteText->boundingRect().width() / 2,
+                                  centerY - gameCompleteText->boundingRect().height() / 2);
+
+        scene->addItem(gameCompleteText);
+
+    }
+
+}

@@ -11,7 +11,6 @@
 #include "Mario.h"
 #include "Obstacle.h"
 
-const int winscore = 100;
 
 class GameScene : public QMainWindow
 {
@@ -30,6 +29,7 @@ private:
     QGraphicsTextItem *scoreText;
     QGraphicsTextItem *coinsText;
     QGraphicsTextItem *abilityStatusText;
+    QGraphicsTextItem *levelText;
     QGraphicsRectItem *lifeBar;
     QPushButton *storeButton; // Button to open the store
     QTimer *movementTimer;
@@ -41,6 +41,10 @@ private:
     int score;
     int coins;
     int lives;
+    int currentLevel;
+    const int totalLevels = 5;
+    int winscore = 100;
+
     void createObstacles();
     void updateScore(int points);
     void updateLives();
@@ -66,7 +70,7 @@ private:
     // Store functions
     void openStore();
     void purchaseAbility(const QString &ability);
-    void updateAbilityUI();
+    void updateAbilityUI();    
 
 
 };
