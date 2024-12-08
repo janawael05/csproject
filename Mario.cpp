@@ -1,6 +1,7 @@
 #include "Mario.h"
 #include "Obstacle.h"
 #include "GameScene.h"
+#include "MovingObstacle.h"
 #include <QList>
 #include <QGraphicsItem>
 #include "QtGui/qevent.h"
@@ -90,7 +91,6 @@ void Mario::applyGravity() {
     }
 }
 
-
 void Mario::updatePosition() {
     // Apply horizontal movement
     setPos(x() + velocityX, y());
@@ -100,16 +100,17 @@ void Mario::updatePosition() {
 
     // Apply vertical movement
     setPos(x(), y() + velocityY);
-    // While jumping, make Mario land further
+
+    // Apply a slight horizontal speed increase while jumping
     if (!onGround) {
-    //Apply a slight horizontal speed increase while jumping
-    velocityX = 5; // Mario moves forward while jumping
+        velocityX = 5; // Mario moves forward while jumping
     }
 
     // Check for collisions
     QList<QGraphicsItem *> collidingItems = scene()->collidingItems(this);
     for (QGraphicsItem *item : collidingItems) {
-        Obstacle *obstacle = dynamic_cast<Obstacle *>(item);        
+        // Check for static obstacle collision
+        Obstacle *obstacle = dynamic_cast<Obstacle *>(item);
         if (obstacle) {
             QRectF marioBounds = boundingRect().translated(pos());
             QRectF obstacleBounds = obstacle->boundingRect().translated(obstacle->pos());
@@ -120,34 +121,53 @@ void Mario::updatePosition() {
                 setPos(x(), obstacleBounds.top() - marioBounds.height());
                 onGround = true;
             } else if (!invincible && !collisionCooldown) {
-                // Side collision: Mario loses a life
-                emit marioHitObstacle(); // Signal collision
-
-                // Query GameScene for remaining lives
-                GameScene *gameScene = dynamic_cast<GameScene *>(scene()->views().first()->parentWidget());
-                if (gameScene) {
-                    qDebug() << "Mario collided. Lives left:" << gameScene->getLives();
-                    if (gameScene->getLives() > 0) {
-                        // Start collision cooldown only if Mario has lives left
-                        startCollisionCooldown();
-                    } else {
-                        // If game over, stop the cooldown timer to avoid further updates
-                        stopCollisionCooldown();
-                        qDebug() << "Game Over triggered from Mario.";
-
-                    }
-
-                }
+                handleCollision(); // Handle collision with static obstacle
                 return; // Prevent multiple collision handling
             }
         }
+
+        // Check for moving obstacle collision
+        MovingObstacle *movingObstacle = dynamic_cast<MovingObstacle *>(item);
+        if (movingObstacle) {
+            QRectF marioBounds = boundingRect().translated(pos());
+            QRectF obstacleBounds = movingObstacle->boundingRect().translated(movingObstacle->pos());
+
+            qDebug() << "Checking collision with moving obstacle. Mario bounds:" << marioBounds
+                     << "Obstacle bounds:" << obstacleBounds;
+
+            if (marioBounds.intersects(obstacleBounds) && !invincible && !collisionCooldown) {
+                qDebug() << "Collision with moving obstacle detected.";
+                handleCollision();
+                return;
+            }
+        }
     }
+
     // Check if Mario has landed on the ground
     if (y() >= 400) { // Ground level
         setPos(x(), 400);
         velocityY = 0;
         onGround = true;
         velocityX = 0;
+    }
+}
+
+// Handle collision logic for any obstacle
+void Mario::handleCollision() {
+    emit marioHitObstacle(); // Signal collision
+
+    // Query GameScene for remaining lives
+    GameScene *gameScene = dynamic_cast<GameScene *>(scene()->views().first()->parentWidget());
+    if (gameScene) {
+        qDebug() << "Mario collided. Lives left:" << gameScene->getLives();
+        if (gameScene->getLives() > 0) {
+            // Start collision cooldown only if Mario has lives left
+            startCollisionCooldown();
+        } else {
+            // If game over, stop the cooldown timer to avoid further updates
+            stopCollisionCooldown();
+            qDebug() << "Game Over triggered from Mario.";
+        }
     }
 }
 

@@ -33,6 +33,7 @@ private:
     bool onGround;
     QTimer *physicsTimer; // Timer for physics updates (gravity, motion)
     void checkCollisions();
+    void handleCollision();
     void applyGravity();  // Handles gravity
     void updatePosition(); // Updates Mario's position based on velocity
 

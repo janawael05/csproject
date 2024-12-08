@@ -2,7 +2,6 @@
 #include "ui_GameScene.h"
 #include "MainWindow.h"
 #include "Obstacle.h"
-#include "MovingObstacle.h"
 #include "Mario.h"
 #include "QMessageBox"
 #include <QGraphicsPixmapItem>
@@ -43,6 +42,7 @@ GameScene::GameScene(QWidget *parent)
     // Add obstacles
     createObstacles();
     addMovingObstacle();
+
 
     // Add Mario
     mario = new Mario();
@@ -187,13 +187,12 @@ void GameScene::createObstacles() {
 void GameScene::addMovingObstacle() {
     int movingObstacleCount = 5 + currentLevel * 2;  // Increase number of obstacles as levels progress
     for (int i = 0; i < movingObstacleCount; ++i) {
-    MovingObstacle *bird = new MovingObstacle(400, 800, 300, 2);
+    MovingObstacle *bird = new MovingObstacle(300 + (i*700), 800, 300,2);
     bird->setSpeed(3);
     bird->setRange(200);
     scene->addItem(bird);
     }
 }
-
 void GameScene::updateScore(int points) {
     if (score < winscore) {
         score += points; // Increment score by the given points
@@ -473,7 +472,8 @@ void GameScene::finishLevel() {
     // If it's not the last level, continue to the next level
     if (currentLevel <= totalLevels) {
         // Recreate obstacles and other level elements
-        createObstacles(); // Assuming this function creates obstacles for the current level
+        createObstacles();
+        addMovingObstacle();
 
         // Restart timers for the new level
         if (movementTimer) movementTimer->start();

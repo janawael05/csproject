@@ -1,5 +1,7 @@
-#ifndef MOVINGOBSTACLE_H #define MOVINGOBSTACLE_H
-#include <QGraphicsPixmapItem> #include <QObject>
+#ifndef MOVINGOBSTACLE_H
+#define MOVINGOBSTACLE_H
+#include <QGraphicsPixmapItem>
+#include <QObject>
 #include <QTimer>
 class MovingObstacle : public QObject, public QGraphicsPixmapItem { Q_OBJECT
 public:

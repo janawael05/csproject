@@ -10,7 +10,7 @@
 #include <QPushButton>
 #include "Mario.h"
 #include "Obstacle.h"
-
+#include "MovingObstacle.h"
 
 class GameScene : public QMainWindow
 {
